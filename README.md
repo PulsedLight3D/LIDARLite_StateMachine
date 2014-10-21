@@ -15,8 +15,10 @@ r XX | Read Register| Read register, ex. 'r 12' reads register 12
 w XX XX | Write Register|Write to register, ex. 'w 18 19' writes '19' to register '18'
 
 ## Dependencies
-This code utilizes the 'Arduino I2C Master Library' from DSS Circuits:  
-[http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library]()
+1. Arduino Uno compatible Board
+2. USB Cable
+3. LIDAR-Lite Sensor
+4. The 'Arduino I2C Master Library' from DSS Circuits: [http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library]()
 
 ## Installation
 Information about installing libraries can be found:  
