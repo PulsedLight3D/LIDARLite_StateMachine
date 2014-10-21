@@ -10,6 +10,9 @@ http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library
 You can find more information about installing libraries here:
 http://arduino.cc/en/Guide/Libraries
 
+NOTE: Be sure to set 'Newline' in drop down box at the bottom of the monitor
+window instead of the default 'No line ending
+
 */
 
 // ************************************Version****************************************
