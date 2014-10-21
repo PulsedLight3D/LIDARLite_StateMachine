@@ -23,7 +23,7 @@ window instead of the default 'No line ending
 
 // **********************************Definitions**************************************
 #define    MULTIPLEXER_ADDRESS 0x70			// Default I2C Address of Multiplexer.
-#define    LIDARLite_ADDRESS   0x42			// Default I2C Address of LIDAR-Lite.
+#define    LIDARLite_ADDRESS   0x62			// Default I2C Address of LIDAR-Lite.
 #define    RegisterMeasure     0x00			// Register to write to initiate ranging.
 #define    MeasureValue        0x04			// Value to initiate ranging.
 #define    RegisterStatus      0x01			// Register for status - Control Register #1: [0:Busy, 1:Ref Overflow, 2:Sig Overflow, 3:Signal Not Valid, 4:Secondary Return, 5:Velocity Complete, 6:External Trigger Complete, 7:Eye Safe]
