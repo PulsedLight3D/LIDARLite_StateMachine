@@ -32,10 +32,10 @@ m | read distance
 'v' + '0-3' | read raw velocity and set scaling register (ex. 'v0' will read velocity at 0.1m/s
 'w' + '0-3' + '2-9'  | read average velocity and set scaling register (ex. 'w34' will read velocity at 1m/s and average 4 readings)
 
-**More information about velocity scaling is available in the LIDAR-Lite Operating
-Manual on page 22: **
+*More information about velocity scaling is available in the LIDAR-Lite Operating
+Manual on page 22:*
 http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/LIDAR-Lite-Operating-Manual-PRELIM.pdf
 
-** More information about LIDAR-Lite
-Learn more about LIDAR-Lite and PulsedLight:**
+*More information about LIDAR-Lite
+Learn more about LIDAR-Lite and PulsedLight:*
 http://pulsedlight3d.com
