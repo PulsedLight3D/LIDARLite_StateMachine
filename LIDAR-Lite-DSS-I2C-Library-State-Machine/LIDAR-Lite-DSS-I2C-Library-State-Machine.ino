@@ -37,7 +37,7 @@ http://arduino.cc/en/Guide/Libraries
 #include <I2C.h>
 
 // Global Variables
-unsigned char LIDARLite_ADDRESSES[] = {0x00,0x01,0x42,0x62, 0x08,0x12,0x33}; // Array of possible address for LIDAR-Lite Sensor
+unsigned char LIDARLite_ADDRESSES[] = {0x62,0x42}; // Array of possible address for LIDAR-Lite Sensor
 char LIDARLite_ADDRESS; // Variable to save the LIDAR-Lite Address when we find it in the array
 
 
