@@ -211,11 +211,11 @@ void smConfigureRegistersPrintStatements(char myFunction, int velocityScaling, i
   else if(myFunction == 'm'){myString = "Reading Raw Distance";}
   else if(myFunction == 'n'){myString = "Reading Smooth Distance";}
   if(myFunction == 'v' || myFunction == 'w'){
-    if (velocityScaling == '1'){
+    if (velocityScaling == 1){
       myString += " @ 0.25 m/s";
-    }else if (velocityScaling == '2'){
+    }else if (velocityScaling == 2){
       myString += " @ 0.5 m/s";      
-    }else if (velocityScaling == '3'){
+    }else if (velocityScaling == 3){
       myString += " @ 1 m/s";      
     }else{
       myString += " @ 0.1 m/s";      
@@ -289,4 +289,3 @@ switch(serialArray[0]){
     }
   }
 }
-
