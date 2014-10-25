@@ -1,8 +1,29 @@
-/*
-LIDAR-LITE DSS I2C LIBRARY STATE MACHINE
+/* 
 
-This sketch demonstrates the various abilities of the 
-LIDAR-Lite Sensor using a simple State Machine. 
+CONTINUOUS READ STATE MACHINE FOR LIDAR-LITE
+
+This sketch demonstrates distance, raw velocity and smoothed velocity readings.
+It also demonstrates the velocity scaling feature. 
+
+USAGE: 
+
+'m' = read distance
+'n' + '2-9' = read average distance
+'v' + '0-3' = read raw velocity and set scaling register 
+'w' + '0-3' + '2-9' = read average velocity and set scaling register 
+Type any other key to stop
+
+Examples:
+- 'm' will read distance
+- 'n2' will read average distance for two readings
+- "v0" will read velocity at 0.1m/s
+- 'w34' will read velocity at 1m/s and average 4 readings
+
+------------------------------------------
+
+More information about velocity scaling is available in the LIDAR-Lite Operating
+Manual on page 22: 
+http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/LIDAR-Lite-Operating-Manual-PRELIM.pdf
 
 It utilizes the 'Arduino I2C Master Library' from DSS Circuits:
 http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library 
@@ -10,310 +31,262 @@ http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library
 You can find more information about installing libraries here:
 http://arduino.cc/en/Guide/Libraries
 
-NOTE: Be sure to set 'Newline' in drop down box at the bottom of the monitor
-window instead of the default 'No line ending
 
 */
 
-// ************************************Version****************************************
-#define    SKETCHVERSION      "0.1"	// Version number of sketch...is printed in debug mode.
+#include <I2C.h>
 
-// ***********************************Includes****************************************
-#include <I2C.h>	// Faster & Smaller Library without the I2C timeout bug. [Replaces <Wire.h>] http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library
+// Global Variables
+unsigned char LIDARLite_ADDRESSES[] = {0x00,0x01,0x42,0x62, 0x08,0x12,0x33}; // Array of possible address for LIDAR-Lite Sensor
+char LIDARLite_ADDRESS; // Variable to save the LIDAR-Lite Address when we find it in the array
 
-// **********************************Definitions**************************************
-#define    MULTIPLEXER_ADDRESS 0x70			// Default I2C Address of Multiplexer.
-#define    LIDARLite_ADDRESS   0x62			// Default I2C Address of LIDAR-Lite.
-#define    RegisterMeasure     0x00			// Register to write to initiate ranging.
-#define    MeasureValue        0x04			// Value to initiate ranging.
-#define    RegisterStatus      0x01			// Register for status - Control Register #1: [0:Busy, 1:Ref Overflow, 2:Sig Overflow, 3:Signal Not Valid, 4:Secondary Return, 5:Velocity Complete, 6:External Trigger Complete, 7:Eye Safe]
-#define    RegisterHighLowB    0x8f			// Register to get both High and Low bytes in 1 call.
-#define    RegisterModes       0x04			// Register for Modes.
-#define    RegisterModeQ       B01111010	// Register value to turn off Correlation: 01111010
-#define    RegisterUpperByte   0x0f			// Register for upper 8 bits of ranging data.
-#define    RegisterLowerByte   0x10			// Register for lower 8 bits of ranging data.
-#define    SensorDisabledVal   205
 
-// ***********************************Variables***************************************
-
-byte        vHighByte = 0x00;		// Stores high byte from ranging.
-byte        vLowByte = 0x00;		// Stored low byte from ranging.
-byte        statusByte = 0x00;		// Stores Device Status.
-boolean     s1ON = true;			// Stores the state of Sensor 1 on the I2C bus.
-boolean     i2cON = true;			// Stores the state of the I2C bus.
-byte        i2cBuffer[1];
-
-// ******************************Structures and Objects*******************************
-struct Lidar_Readings{  // Structure to Store Readings.
-	int              sensor_1_read;
-	unsigned int     sensor_1_readtime;
-	int              sensor_2_read;
-	unsigned int     sensor_2_readtime;
-} lidar_reads;
-
-// ******************************State Machine_Variables*******************************
-
-int n = 0;
-unsigned int integerValue=0;	// The interger being created via serial read, Max value is 65535
-char incomingByte;				// The byte currently being read by State Machine
-uint8_t letterValue = 0;		// The letter for the command	
-unsigned int intOne = 0;		// The first integer in the command
-unsigned int intTwo = 0;		// The second integer in the command
-int runStateMachine = 0;		// If flag = 1, run StateMachine
-
-// *********************************Arduino Methods***********************************
-void setup(){  
-	Serial.begin(115200); 	// Opens serial connection at 9600 baud.
-	I2c.begin();			// Opens & Joins the i2c bus as master.
-	delay(100); 			// Waits to make sure everything is powered up before sending or receiving data
-	I2c.timeOut(50);		// Sets a timeout to ensure no 'locking-up' of sketch if I2C communication fails.
-	printUserManual();
+void setup(){
+  Serial.begin(9600); //Opens serial connection at 9600 baud.     
+  I2c.begin(); // Opens & joins the irc bus as master
+  delay(100); // Waits to make sure everything is powered up before sending or receiving data  
+  I2c.timeOut(50); // Sets a timeout to ensure no locking up of sketch if I2C communication fails
+  llFindSensor(); // Function that uses the LIDARLite-ADDRESSES[] array to find the sensor
 }
 
 void loop(){
-	if (Serial.available() > 0)
-	{
-		while(1) {  // force into a loop until 'n' is received
-			incomingByte = Serial.read();
-			if(incomingByte == 10)
-			{
-				n++; 
-				runStateMachine = 1;
-			}
-			else if(incomingByte == 32)
-			{
-     			n++;
-			}
-			else if (incomingByte > 57)
-			{
-				letterValue = incomingByte;
-     		}
-     		else
-     		{
-				if(incomingByte > 47)
-				{
-					if(incomingByte < 58)
-					{
-						integerValue *= 10;  // shift left 1 decimal place
-						// convert ASCII to integer, add, and shift left 1 decimal place
-						integerValue = ((incomingByte - 48) + integerValue);
-					}
-				}
-			}
-    		if (incomingByte == -1)continue;  // if no characters are in the buffer read() returns -1 
-			if( n > 0 )
-			{
-				if(integerValue > 0)
-				{
-					if(intOne == 0)
-					{
-						intOne = integerValue;
-					}
-					else if(intTwo == 0)
-					{
-						intTwo = integerValue;
-					}              
-					integerValue = 0;              
-				}
-				n=0; 
-			}
-			if(runStateMachine == 1)
-			{
-				stateMachine(letterValue,intOne,intTwo);
-			}
-		}
-	} 
+  smRunStateMachine(); // Run the State Machine that controls actions based on user input
 }
-void stateMachine(uint8_t switchCaseVar,int firstValue, int secondValue){
-	letterValue = 0;
-	intOne = 0;
-	intTwo = 0;
-	n=0;  
-	runStateMachine = 0;
-	switch(switchCaseVar){
-		case 'm': case 'M':  
-			Serial.print(F("// AQUIRE "));
-			Serial.print(firstValue);
-			Serial.println(F(" DISTANCE READINGS"));                        
-			for(int i = 0; i < firstValue; i++)
-			{
-				getRange();  // Calls a function to get range in cm from all Sensors.
-				Serial.print(F("Sensor reads: "));
-				Serial.print(lidar_reads.sensor_1_read);
-				Serial.print(F("cm at "));
-				Serial.println(lidar_reads.sensor_1_readtime);
-			}
-			Serial.println(F("// END \n"));
-			break;
-		case 's': case 'S': // Run a Single Reading.
-			Serial.println(F("// AQUIRE SINGLE DISTANCE READING"));
-			getRange();  // Calls a function to get range in cm from all Sensors.
-			Serial.print(F("Byte Readings: "));
-			Serial.print(F("H: "));
-			Serial.print(vHighByte);
-			Serial.print(F("  L: "));
-			Serial.print(vLowByte);
-			Serial.print(F(" / DISTANCE READINGS: "));
-			Serial.print(lidar_reads.sensor_1_read);
-			Serial.print(F("cm at "));
-			Serial.println(lidar_reads.sensor_1_readtime); 	
-			Serial.println(F(""));
-			break;
-		case 'i': case 'I':
-			runSensorInit();
-			break;
-		case 'r': case 'R':
-			Serial.print(F("// READ REGISTER "));
-			Serial.println(firstValue);
-			if(s1ON)
-			{
-				readAndPrintRegisterByte(firstValue);
-			}
-			else
-			{
-				Serial.println("// ERROR: Please initialize sensor with 'i'");
-			}
-			Serial.println(F(""));
-			break; 
-		case 'w': case 'W':
-			Serial.print(F("// WRITE "));
-			Serial.print(secondValue);
-			Serial.print(F(" TO REGISTER "));
-			Serial.println(firstValue);
-			if(s1ON)
-			{
-				uint8_t firstOne = uint8_t(firstValue);
-				uint8_t secondOne = uint8_t(secondValue);
-				writeAndPrintRegisterByte(firstOne,secondOne);
-			}else{
-				Serial.println("// ERROR: Please initialize sensor with 'i'");
-			}
-			Serial.println(F(""));
-			break;
-		default:  
-			Serial.write(switchCaseVar);
-			Serial.print('\t');
-			Serial.print(firstValue);
-			Serial.print('\t');
-			Serial.println(secondValue);       
-	}
+
+
+
+
+/* ==========================================================================================================================================
+Basic read and write functions for LIDAR-Lite, waits for success message (0 or ACK) before proceeding
+=============================================================================================================================================*/
+
+// Write a register and wait until it responds with success
+void llWriteAndWait(char myAddress, char myValue){
+  uint8_t nackack = 100; // Setup variable to hold ACK/NACK resopnses     
+  while (nackack != 0){ // While NACK keep going (i.e. continue polling until sucess message (ACK) is received )
+    nackack = I2c.write(LIDARLite_ADDRESS,myAddress, myValue); // Write to LIDAR-Lite Address with Value
+    delay(2); // Wait 2 ms to prevent overpolling
+  }
+}
+
+// Read 1-2 bytes from a register and wait until it responds with sucess
+byte llReadAndWait(char myAddress, int numOfBytes, byte arrayToSave[2]){
+  uint8_t nackack = 100; // Setup variable to hold ACK/NACK resopnses     
+  while (nackack != 0){ // While NACK keep going (i.e. continue polling until sucess message (ACK) is received )
+    nackack = I2c.read(LIDARLite_ADDRESS,myAddress, numOfBytes, arrayToSave); // Read 1-2 Bytes from LIDAR-Lite Address and store in array
+    delay(2); // Wait 2 ms to prevent overpolling
+  }
+  return arrayToSave[2]; // Return array for use in other functions
+}
+
+
+
+/* ==========================================================================================================================================
+Get 2-byte distance from sensor and combine into single 16-bit int
+=============================================================================================================================================*/
+
+int llGetDistance(){
+  llWriteAndWait(0x00,0x04); // Write 0x04 to register 0x00 to start getting distance readings
+  byte myArray[2]; // array to store bytes from read function
+  llReadAndWait(0x8f,2,myArray); // Read 2 bytes from 0x8f
+  int distance = (myArray[0] << 8) + myArray[1];  // Shift high byte [0] 8 to the left and add low byte [1] to create 16-bit int
+  return(distance);
+}
+
+/* ==========================================================================================================================================
+Get raw velocity readings from sensor and convert to signed int
+=============================================================================================================================================*/
+
+int llGetVelocity(){
+  llWriteAndWait(0x00,0x04); // Write 0x04 to register 0x00 to start getting distance readings
+  llWriteAndWait(0x04,0x80); // Write 0x80 to 0x04 to switch on velocity mode 
+  byte myArray[1]; // Array to store bytes from read function
+  llReadAndWait(0x09,1,myArray); // Read 1 byte from register 0x09 to get velocity measurement 
+  return((int)((char)myArray[0])); // Convert 1 byte to char and then to int to get signed int value for velocity measurement
+}
+
+
+/* ==========================================================================================================================================
+Average readings from velocity and distance
+int numberOfReadings - the number of readings you want to average (0-9 are possible, 2-9 are reccomended)
+bool readVelocity - 'true' or 'false', if 'true' 
+=============================================================================================================================================*/
+
+
+int llGetDistanceAverage(int numberOfReadings){ 
+  if(numberOfReadings < 2){
+    numberOfReadings = 2; // If the number of readings to be taken is less than 2, default to 2 readings
+  }
+  int sum = 0; // Variable to store sum
+  for(int i = 0; i < numberOfReadings; i++){ 
+      sum = sum + llGetDistance(); // Add up all of the readings
+  }
+  sum = sum/numberOfReadings; // Divide the total by the number of readings to get the average
+  return(sum);
+}
+
+int llGetVelocityAverage(int numberOfReadings){ 
+  int sum = 0; // Variable to store sum
+  for(int i = 0; i < numberOfReadings; i++){ 
+      sum = sum + llGetVelocity(); // Add up all of the readings
+  }
+  sum = sum/numberOfReadings; // Divide the total by the number of readings to get the average
+  return(sum);
+}
+
+
+/* ==========================================================================================================================================
+SET VELOCITY SCALING VALUES AND RESET REGISTERS BEFORE READING DISTANCE
+=============================================================================================================================================*/
+
+void llConfigureRegisters(char myFunction, int velocityScaling, int numberOfReadings){
+  unsigned char setScalingValue[] = {0xC8,0x50,0x28,0x14}; // Array of velocity scaling values, see "Velocity Measurment" in operating manual for details
+  if(myFunction == 'v' || myFunction == 'w'){
+    if(velocityScaling < 4){
+      llWriteAndWait(0x68,setScalingValue[velocityScaling]); // Set scaling value based on scaling choice      
+    }else{
+        llWriteAndWait(0x68,setScalingValue[0]); // If scaling choice is out of array range, use default scaling
+    }
+  }else if(myFunction == 'm' || myFunction == 'n'){
+    llWriteAndWait(0x00,0x00); // reset device to defaults for distance measurment
+  }
+  smConfigureRegistersPrintStatements(myFunction, velocityScaling, numberOfReadings);
+}
+
+
+/* ==========================================================================================================================================
+Find the LIDAR-Lite Sensor from array of possible I2C address
+=============================================================================================================================================*/
+
+void llFindSensor(){
+  uint8_t nackack = 100; // Setup variable to hold ACK/NACK resopnses     
+  String myString; // Setup string variable to print outcome
+  bool sensorFound = false; // Setup flag to indicate whether a sensor has been found or not
+  int i = 0; // Setup a counter
+  while (nackack != 0){ // While NACK keep going (i.e. continue polling until sucess message (ACK) is received )
+    LIDARLite_ADDRESS = byte(LIDARLite_ADDRESSES[i]); // Set address from addresses array
+    nackack = I2c.write(LIDARLite_ADDRESS ,0x41,0x00); // Write 0x00 to read only register 0x41 (will produce an ACK if there is a deice at the device address but won't write anything)
+    if(nackack != 0){
+      i++; // If no ACK from write, increment to next address
+    }else{
+      break; // If ACK recieved stop while loop
+    }
+    delay(2); // Wait 2 ms to prevent overpolling
+  }
+  byte testValue[1]; // Create array to store bytes from read
+  llReadAndWait(0x02,1,testValue); // Read from register 0x02
+  if(testValue[0] == 0x80){ // If device at address is LIDAR-Lite, register 0x02 should always equal 0x80
+    myString += "Device @ 0x";
+    myString += String(byte(LIDARLite_ADDRESS),HEX);  
+    myString += " is LIDAR-Lite.";
+    smPrintFunctionInit(myString);
+  }else{ // If register 0x02 does not equal 0x80, increment to next address and try again
+    i++;
+  }  
 
 }
 
-// *******************************Private Functions***********************************
-void readAndPrintRegisterByte(uint8_t reg)
-{
-	while (I2c.read((uint8_t)LIDARLite_ADDRESS, reg ,(uint8_t)1) != 0); // Request 1 byte from LIDAR-Lite 
-	while (I2c.available() < 1);  // Wait for data
-	byte myByte = I2c.receive();  // Get Data
-	Serial.print(F("Register "));
-	Serial.print(reg);
-	Serial.print(F(" : "));
-	Serial.print(bitRead(myByte,7));
-	Serial.print(bitRead(myByte,6));
-	Serial.print(bitRead(myByte,5));
-	Serial.print(bitRead(myByte,4));
-	Serial.print(bitRead(myByte,3));
-	Serial.print(bitRead(myByte,2));
-	Serial.print(bitRead(myByte,1));
-	Serial.print(bitRead(myByte,0));
-	Serial.print(", 0x");
-	Serial.println(myByte, HEX);
-}
-void writeAndPrintRegisterByte(uint8_t reg, uint8_t regByte){
-	I2c.write((uint8_t)LIDARLite_ADDRESS,(uint8_t)reg,(uint8_t)regByte);
-	Serial.print("Write successful: ");
-	readAndPrintRegisterByte(reg);
+
+/* ==========================================================================================================================================
+SERIAL INTERACTION AND DISPLAY FUNCTIONS
+=============================================================================================================================================*/
+
+void smPrintFunctionInit(String myString){
+  Serial.println("\n=======================================================");
+  Serial.println(myString);
+  Serial.println("=======================================================\n");
 }
 
-// ***************This function gets/stores range from the LIDAR-Lite*****************
-void getRange(){
-	int o = 100;
-	if (s1ON)
-	{
-		o = 100;
-		while (o != 0)
-		{
-			o =
-			I2c.write((uint8_t)LIDARLite_ADDRESS,
-				(uint8_t)RegisterMeasure,       // Register to initiate ranging
-				(uint8_t)MeasureValue);         // Value to initiate ranging
-			if (o != 0)
-			{
-				delay(2);
-			}
-		}
-
-		delay(4);  // Delay for quickest read time
-		lidar_reads.sensor_1_readtime = millis(); 	// Store Timestamp
-
-		//// *** START OF TWO BYTE READ CODE ***
-		byte HLByte[2];
-		o = 100;
-		while (o != 0)
-		{
-			// Call the register for both high and Low byte
-			o = I2c.read((uint8_t)LIDARLite_ADDRESS,(uint8_t)RegisterHighLowB, 2,HLByte);
-			if (o != 0)
-			{
-				delay(2);
-			}
-		}
-		vHighByte = HLByte[0]; // Get high byte
-		vLowByte = HLByte[1]; // Get low byte
-		//// *** END OF TWO BYTE READ CODE
-
-		// Store Range after putting High/Low byte together.
-		lidar_reads.sensor_1_read = (vHighByte << 8) + vLowByte;
-	}
-	if (!s1ON)
-	{
-		// If sensor 1 isn't ON we set to a value we watch for in the code...
-		lidar_reads.sensor_1_read = SensorDisabledVal; 
-	}
-}
-// **********************This function checks i2c bus for devices***********************
-void runSensorInit()
-{
-	byte tmpData[1];
-	// Check Sensor 1:
-	if(I2c.read(LIDARLite_ADDRESS, RegisterStatus, 1, tmpData) == 0)
-	{
-		s1ON = true;
-		Serial.println("// SENSOR INITIALIZED \n");
-	} 
-	else 
-	{
-		s1ON = false;
-		//Put starter values in Struct since sensor is disabled.
-		lidar_reads.sensor_1_readtime = 0;
-		lidar_reads.sensor_1_read = SensorDisabledVal;
-	}
-	if(!s1ON)
-	{
-		I2c.end();
-	i2cON = false;
-	} 
-	else 
-	{
-		if (!i2cON){
-			I2c.begin();
-			i2cON = true;
-		}
-	}
+String smPrintUserManaual(){
+  String myString = "Continuous read state machine for LIDAR-Lite User Manual\n\nUSAGE: \n'm' = read distance\n'n' + '2-9' = read average distance\n'v' + '0-3' = read raw velocity and set scaling register\n'w' + '0-3' + '2-9' = read average velocity and set scaling register \nType any other key to stop\n\nExamples:\n- 'm' will read distance\n- 'n2' will read average distance for two readings\n- 'v0' will read velocity at 0.1m/s\n- 'w34' will read velocity at 1m/s and average 4 readings";
+  return myString;
 }
 
-void printUserManual(){
-	Serial.println(F("\n*********LIDAR-LITE STATE MACHINE USER MANUAL*********"));
-	Serial.println(F("================================================================================"));
-	Serial.println(F("COMMAND   => DESCRIPTION"));
-	Serial.println(F("'i'       => Initilize Sensor"));
-	Serial.println(F("'s'       => Take single reading"));
-	Serial.println(F("'r XX'    => Read register, ex. 'r 12' reads register 12"));
-	Serial.println(F("'w XX XX' => Write to register, ex. 'w 18 19' writes '19' to register '18'"));
-	Serial.println(F(""));
-	Serial.println(F("NOTES:"));
-	Serial.println(F("- Be sure to set 'Newline' in drop down box at the bottom of the monitor"));
-	Serial.println(F("  window instead of the default 'No line ending'"));	
-	Serial.println(F("================================================================================"));
+// SET VELOCITY SCALING PRINT OUTPUT
+
+void smConfigureRegistersPrintStatements(char myFunction, int velocityScaling, int numberOfReadings){
+  String myString;
+  if (myFunction == 'v'){myString = "Reading Raw Velocity";}
+  else if (myFunction == 'w'){myString = "Reading Velocity Smooth";}
+  else if(myFunction == 'm'){myString = "Reading Raw Distance";}
+  else if(myFunction == 'n'){myString = "Reading Smooth Distance";}
+  if(myFunction == 'v' || myFunction == 'w'){
+    if (velocityScaling == '1'){
+      myString += " @ 0.25 m/s";
+    }else if (velocityScaling == '2'){
+      myString += " @ 0.5 m/s";      
+    }else if (velocityScaling == '3'){
+      myString += " @ 1 m/s";      
+    }else{
+      myString += " @ 0.1 m/s";      
+    }
+  }
+  if(numberOfReadings != 0){
+    myString += " averaging ";
+    myString += int(numberOfReadings);
+    myString += " readings";
+  }
+  smPrintFunctionInit(myString);  
 }
+
+// GLOBAL VARIABLES FOR STATE MACHINE
+int configureFlag = 0;
+int i = 0;
+char serialArray[3];
+char serialRead;
+
+// The state machine
+void smRunStateMachine(){
+  if(Serial.available() > 0){
+    while(Serial.available() > 0){
+      if(i==0){
+        configureFlag = 0;
+      }
+      serialRead = Serial.read();
+      if(serialRead == 10 || serialRead == 32 ){
+      }else{
+        serialArray[i] = serialRead;
+        i++;  
+      }
+    }
+  }else{
+    i = 0;
+  }
+
+switch(serialArray[0]){
+  case 'v': case 'V':
+    if (configureFlag == 0){
+      llConfigureRegisters(serialArray[0],int(serialArray[1])-48,0);
+      configureFlag++;
+    }      
+    Serial.println(llGetVelocity());
+  break;
+  case 'w':case 'W':
+    if (configureFlag == 0){
+      char scaleChar = Serial.read();
+      llConfigureRegisters(serialArray[0],int(serialArray[1])-48,int(serialArray[2])-48);
+      configureFlag++;       
+    }
+    Serial.println(llGetVelocityAverage(int(serialArray[2])-48));
+  break;
+  case 'm':case 'M':
+    if (configureFlag == 0){
+      llConfigureRegisters(serialArray[0],0,0); 
+      configureFlag++;    
+    }
+    Serial.println(llGetDistance());
+  break;
+  case 'n':case 'N':
+  if (configureFlag == 0){
+      llConfigureRegisters(serialArray[0],0,int(serialArray[1])-48); 
+      configureFlag++;    
+    }
+    Serial.println(llGetDistanceAverage(int(serialArray[1])-48));
+  default:
+  if (configureFlag == 0){
+      smPrintFunctionInit(smPrintUserManaual());
+      configureFlag++;    
+    }
+  }
+}
+
