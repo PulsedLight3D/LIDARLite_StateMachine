@@ -18,7 +18,7 @@ http://arduino.cc/en/Guide/Libraries
 
 ## Usage
 
-1. Connect and Arduino and upload code
+1. Connect an Arduino and upload code
 2. Open the serial monitor
 3. Submit commands via the serial monitor
 
