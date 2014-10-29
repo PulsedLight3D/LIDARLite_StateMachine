@@ -1,4 +1,4 @@
-LIDAR-Lite-DSS-I2C-Library-State-Machine
+LIDARLite_StateMachine
 ========================================
 
 This sketch demonstrates the various abilities of the 
@@ -7,9 +7,10 @@ LIDAR-Lite Sensor using a simple State Machine.
 
 ## Dependencies
 1. Arduino Uno compatible Board
-2. USB Cable
-3. LIDAR-Lite Sensor
-4. The 'Arduino I2C Master Library' from DSS Circuits: http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library
+2. Arduino IDE (1.0.5 or newer)
+3. USB Cable
+4. LIDAR-Lite Sensor
+5. The 'Arduino I2C Master Library' from DSS Circuits: http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library
 
 ## Installation
 1. Download Repository and open with Arduino IDE
@@ -18,29 +19,24 @@ http://arduino.cc/en/Guide/Libraries
 
 ## Usage
 
-1. Connect and Arduino and upload code
+1. Connect an Arduino and upload code
 2. Open the serial monitor
-3. Be sure to set 'Newline' in drop down box at the bottom of the monitor window instead of the default 'No line ending
-4. Submit commands via the serial monitor
+3. Submit commands via the serial monitor
 
 ## Commands
-All commands start with a single letter, some commands also require one or two numerical values (0-255), for these commands simply type the letter, a space, the first value, a space then the second value. 
+All commands start with a single letter, some commands also require one or two numerical values (0-255), for these commands simply type the letter, the first value and then the second value. 
 
-Command|Short Name|Description
-:---|:--|:---
-i |Initialize|Initialize Sensor
-s | Single Reading|Take single reading
-r XX | Read Register| Read register, ex. 'r 12' reads register 12
-w XX XX | Write Register|Write to register, ex. 'w 18 19' writes '19' to register '18'
+Command|Description
+:---|:---
+m | read distance
+'n' + '2-9' | read average distance (ex. 'n2' will read average distance for two readings)
+'v' + '0-3' | read raw velocity and set scaling register (ex. 'v0' will read velocity at 0.1m/s
+'w' + '0-3' + '2-9'  | read average velocity and set scaling register (ex. 'w34' will read velocity at 1m/s and average 4 readings)
 
+*More information about velocity scaling is available in the LIDAR-Lite Operating
+Manual on page 22:*
+http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/LIDAR-Lite-Operating-Manual-PRELIM.pdf
 
-## More information about LIDAR-Lite
-Learn more about LIDAR-Lite and PulsedLight:  
+*More information about LIDAR-Lite
+Learn more about LIDAR-Lite and PulsedLight:*
 http://pulsedlight3d.com
-
-
-## Usage
-
-1. Connect and arduino and upload code
-2. Open the serial monitor
-3. Be sure to set 'Newline' in drop down box at the bottom of the monitor window instead of the default 'No line ending
