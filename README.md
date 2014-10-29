@@ -1,4 +1,4 @@
-LIDAR-Lite-DSS-I2C-Library-State-Machine
+LIDARLite_StateMachine
 ========================================
 
 This sketch demonstrates the various abilities of the 
