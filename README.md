@@ -1,7 +1,7 @@
 LIDARLite_StateMachine
 ========================================
 
-This sketch demonstrates the various abilities of the 
+This Arduino sketch demonstrates the various abilities of the 
 LIDAR-Lite Sensor using a simple State Machine. 
 
 
