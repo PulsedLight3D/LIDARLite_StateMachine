@@ -23,7 +23,7 @@ window instead of the default 'No line ending
 
 // **********************************Definitions**************************************
 #define    MULTIPLEXER_ADDRESS 0x70			// Default I2C Address of Multiplexer.
-#define    LIDARLite_ADDRESS   0x62			// Default I2C Address of LIDAR-Lite.
+#define    LIDARLite_ADDRESS   0x42			// Default I2C Address of LIDAR-Lite.
 #define    RegisterMeasure     0x00			// Register to write to initiate ranging.
 #define    MeasureValue        0x04			// Value to initiate ranging.
 #define    RegisterStatus      0x01			// Register for status - Control Register #1: [0:Busy, 1:Ref Overflow, 2:Sig Overflow, 3:Signal Not Valid, 4:Secondary Return, 5:Velocity Complete, 6:External Trigger Complete, 7:Eye Safe]
@@ -33,7 +33,8 @@ window instead of the default 'No line ending
 #define    RegisterUpperByte   0x0f			// Register for upper 8 bits of ranging data.
 #define    RegisterLowerByte   0x10			// Register for lower 8 bits of ranging data.
 #define    SensorDisabledVal   205
-
+#define    MeasureVelocity     0x80
+#define    RegisterVelocity    0x09
 // ***********************************Variables***************************************
 
 byte        vHighByte = 0x00;		// Stores high byte from ranging.
@@ -42,6 +43,7 @@ byte        statusByte = 0x00;		// Stores Device Status.
 boolean     s1ON = true;			// Stores the state of Sensor 1 on the I2C bus.
 boolean     i2cON = true;			// Stores the state of the I2C bus.
 byte        i2cBuffer[1];
+byte        velocity;
 
 // ******************************Structures and Objects*******************************
 struct Lidar_Readings{  // Structure to Store Readings.
@@ -60,6 +62,8 @@ uint8_t letterValue = 0;		// The letter for the command
 unsigned int intOne = 0;		// The first integer in the command
 unsigned int intTwo = 0;		// The second integer in the command
 int runStateMachine = 0;		// If flag = 1, run StateMachine
+int getHex = 0;
+String hexString = "";
 
 // *********************************Arduino Methods***********************************
 void setup(){  
@@ -75,7 +79,21 @@ void loop(){
 	{
 		while(1) {  // force into a loop until 'n' is received
 			incomingByte = Serial.read();
-			if(incomingByte == 10)
+            	if(getHex == 1)
+                {
+                    if(incomingByte == 10)
+			{
+				runStateMachine = 1;
+			}
+                      else if(incomingByte == 32)
+                      {
+                      }
+                      else{
+                    hexString += (String)incomingByte;
+                      }
+                    
+                 }else{
+                        if(incomingByte == 10)
 			{
 				n++; 
 				runStateMachine = 1;
@@ -87,9 +105,14 @@ void loop(){
 			else if (incomingByte > 57)
 			{
 				letterValue = incomingByte;
-     		}
-     		else
-     		{
+                                 if (incomingByte == 120)
+                                  {
+                                  getHex = 1;
+                                  }
+     		        }
+                        
+     		        else
+     		        {
 				if(incomingByte > 47)
 				{
 					if(incomingByte < 58)
@@ -100,6 +123,8 @@ void loop(){
 					}
 				}
 			}
+                        }
+                       
     		if (incomingByte == -1)continue;  // if no characters are in the buffer read() returns -1 
 			if( n > 0 )
 			{
@@ -119,19 +144,24 @@ void loop(){
 			}
 			if(runStateMachine == 1)
 			{
-				stateMachine(letterValue,intOne,intTwo);
+				stateMachine(letterValue,intOne,intTwo,hexString);
+
 			}
 		}
 	} 
 }
-void stateMachine(uint8_t switchCaseVar,int firstValue, int secondValue){
+void stateMachine(uint8_t switchCaseVar,int firstValue, int secondValue, String hex){
 	letterValue = 0;
 	intOne = 0;
 	intTwo = 0;
 	n=0;  
 	runStateMachine = 0;
+        getHex = 0;
+        hexString = "";
+        int printHexToDec = 0;
 	switch(switchCaseVar){
 		case 'm': case 'M':  
+                  I2c.write(LIDARLite_ADDRESS,RegisterModes,0x00);
 			Serial.print(F("// AQUIRE "));
 			Serial.print(firstValue);
 			Serial.println(F(" DISTANCE READINGS"));                        
@@ -145,7 +175,23 @@ void stateMachine(uint8_t switchCaseVar,int firstValue, int secondValue){
 			}
 			Serial.println(F("// END \n"));
 			break;
+                   case 'v': case 'V':  
+                             I2c.write(LIDARLite_ADDRESS,RegisterModes,MeasureVelocity);
+			Serial.print(F("// AQUIRE "));
+			Serial.print(firstValue);
+			Serial.println(F(" VELOCITY READINGS"));                        
+			for(int i = 0; i < firstValue; i++)
+			{
+				getVelocity();  // Calls a function to get range in cm from all Sensors.
+				Serial.print(F("Sensor reads: "));
+				Serial.print(lidar_reads.sensor_1_read);
+				Serial.print(F("cm at "));
+				Serial.println(lidar_reads.sensor_1_readtime);
+			}
+			Serial.println(F("// END \n"));
+			break;
 		case 's': case 'S': // Run a Single Reading.
+                  I2c.write(LIDARLite_ADDRESS,RegisterModes,0x00);
 			Serial.println(F("// AQUIRE SINGLE DISTANCE READING"));
 			getRange();  // Calls a function to get range in cm from all Sensors.
 			Serial.print(F("Byte Readings: "));
@@ -159,6 +205,16 @@ void stateMachine(uint8_t switchCaseVar,int firstValue, int secondValue){
 			Serial.println(lidar_reads.sensor_1_readtime); 	
 			Serial.println(F(""));
 			break;
+                case 'x':
+                        Serial.print("0x");
+                        Serial.print(hex);
+                        Serial.print(" = ");
+                        Serial.print(hexToDec(hex));
+                        Serial.println(" in decimal.");
+                        break;
+                case 'X':
+                        Serial.println(String(firstValue,HEX));
+                        break;
 		case 'i': case 'I':
 			runSensorInit();
 			break;
@@ -221,11 +277,40 @@ void readAndPrintRegisterByte(uint8_t reg)
 	Serial.println(myByte, HEX);
 }
 void writeAndPrintRegisterByte(uint8_t reg, uint8_t regByte){
-	I2c.write((uint8_t)LIDARLite_ADDRESS,(uint8_t)reg,(uint8_t)regByte);
+	I2c.write(LIDARLite_ADDRESS,reg,regByte);
 	Serial.print("Write successful: ");
 	readAndPrintRegisterByte(reg);
 }
 
+// ***************This function gets/stores velocity from the LIDAR-Lite*****************
+void getVelocity(){
+  	int o = 100;
+
+	if (s1ON)
+	{
+//I2c.write((uint8_t)LIDARLite_ADDRESS,0x04,0x80);
+I2c.write(LIDARLite_ADDRESS,0x00,0x04);         // Value to initiate ranging
+I2c.write(LIDARLite_ADDRESS,0x68,0x14);         // Value to initiate ranging
+
+		delay(100);  // Delay for quickest read time
+		lidar_reads.sensor_1_readtime = millis(); 	// Store Timestamp
+		byte velocity[2];
+                // Call the register for velocity
+                        I2c.read(LIDARLite_ADDRESS,0x09,1,velocity);
+//                        delay(2);
+
+		// Store Range after putting High/Low byte together.
+		lidar_reads.sensor_1_read = velocity[0];
+                Serial.print(velocity[0]);
+
+
+	}
+	if (!s1ON)
+	{
+		// If sensor 1 isn't ON we set to a value we watch for in the code...
+		lidar_reads.sensor_1_read = SensorDisabledVal; 
+	}
+}
 // ***************This function gets/stores range from the LIDAR-Lite*****************
 void getRange(){
 	int o = 100;
@@ -235,9 +320,9 @@ void getRange(){
 		while (o != 0)
 		{
 			o =
-			I2c.write((uint8_t)LIDARLite_ADDRESS,
-				(uint8_t)RegisterMeasure,       // Register to initiate ranging
-				(uint8_t)MeasureValue);         // Value to initiate ranging
+			I2c.write(LIDARLite_ADDRESS,
+				RegisterMeasure,       // Register to initiate ranging
+				MeasureValue);         // Value to initiate ranging
 			if (o != 0)
 			{
 				delay(2);
@@ -253,7 +338,7 @@ void getRange(){
 		while (o != 0)
 		{
 			// Call the register for both high and Low byte
-			o = I2c.read((uint8_t)LIDARLite_ADDRESS,(uint8_t)RegisterHighLowB, 2,HLByte);
+			o = I2c.read(LIDARLite_ADDRESS,RegisterHighLowB, 2,HLByte);
 			if (o != 0)
 			{
 				delay(2);
@@ -303,6 +388,24 @@ void runSensorInit()
 	}
 }
 
+unsigned int hexToDec(String hexString) {
+  
+  unsigned int decValue = 0;
+  int nextInt;
+  
+  for (int i = 0; i < hexString.length(); i++) {
+    
+    nextInt = int(hexString.charAt(i));
+    if (nextInt >= 48 && nextInt <= 57) nextInt = map(nextInt, 48, 57, 0, 9);
+    if (nextInt >= 65 && nextInt <= 70) nextInt = map(nextInt, 65, 70, 10, 15);
+    if (nextInt >= 97 && nextInt <= 102) nextInt = map(nextInt, 97, 102, 10, 15);
+    nextInt = constrain(nextInt, 0, 15);
+    
+    decValue = (decValue * 16) + nextInt;
+  }
+  return decValue;
+}
+
 void printUserManual(){
 	Serial.println(F("\n*********LIDAR-LITE STATE MACHINE USER MANUAL*********"));
 	Serial.println(F("================================================================================"));
@@ -317,3 +420,4 @@ void printUserManual(){
 	Serial.println(F("  window instead of the default 'No line ending'"));	
 	Serial.println(F("================================================================================"));
 }
+
