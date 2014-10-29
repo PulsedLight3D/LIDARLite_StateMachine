@@ -7,9 +7,10 @@ LIDAR-Lite Sensor using a simple State Machine.
 
 ## Dependencies
 1. Arduino Uno compatible Board
-2. USB Cable
-3. LIDAR-Lite Sensor
-4. The 'Arduino I2C Master Library' from DSS Circuits: http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library
+2. Arduino IDE (1.0.5 or newer)
+3. USB Cable
+4. LIDAR-Lite Sensor
+5. The 'Arduino I2C Master Library' from DSS Circuits: http://www.dsscircuits.com/index.php/articles/66-arduino-i2c-master-library
 
 ## Installation
 1. Download Repository and open with Arduino IDE
