@@ -109,7 +109,6 @@ int llGetVelocity(){
 /* ==========================================================================================================================================
 Average readings from velocity and distance
 int numberOfReadings - the number of readings you want to average (0-9 are possible, 2-9 are reccomended)
-bool readVelocity - 'true' or 'false', if 'true' 
 =============================================================================================================================================*/
 
 
