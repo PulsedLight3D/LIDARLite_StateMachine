@@ -31,7 +31,7 @@ Command|Description
 m | read distance
 'n' + '2-9' | read average distance (ex. 'n2' will read average distance for two readings)
 'v' + '0-3' | read raw velocity and set scaling register (ex. 'v0' will read velocity at 0.1m/s
-'w' + '0-3' + '2-9'  | read average velocity and [set scaling register](#references) (ex. 'w34' will read velocity at 1m/s and avg. 4 readings)
+'w' + '0-3' + '2-9'  | read average velocity and [set scaling register](#references) (ex. 'w34' will read velocity at 1m/s and averages 4 readings)
 
 
 ## Arduino Setup
