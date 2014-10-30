@@ -50,9 +50,6 @@ GND | GND
 
 ## References 
 
-- *More information about velocity scaling is available in the LIDAR-Lite Operating
-Manual on page 22:*
-http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/LIDAR-Lite-Operating-Manual-PRELIM.pdf
-- *More information about LIDAR-Lite
-Learn more about LIDAR-Lite and PulsedLight:*
-http://pulsedlight3d.com
+- **Velocity Scaling Information:** More information about velocity scaling is available in the [LIDAR-Lite Operating
+Manual on page 22](http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/LIDAR-Lite-Operating-Manual-PRELIM.pdf)
+- **General Information:** Learn more about LIDAR-Lite and PulsedLight:http://pulsedlight3d.com
