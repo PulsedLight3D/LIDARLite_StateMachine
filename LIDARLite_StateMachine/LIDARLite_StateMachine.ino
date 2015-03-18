@@ -37,8 +37,7 @@ http://arduino.cc/en/Guide/Libraries
 #include <I2C.h>
 
 // Global Variables
-unsigned char LIDARLite_ADDRESSES[] = {0x62,0x42}; // Array of possible address for LIDAR-Lite Sensor
-char LIDARLite_ADDRESS; // Variable to save the LIDAR-Lite Address when we find it in the array
+char LIDARLite_ADDRESS = 0x62; // LIDAR-Lite I2C Address
 
 
 void setup(){
@@ -46,7 +45,6 @@ void setup(){
   I2c.begin(); // Opens & joins the irc bus as master
   delay(100); // Waits to make sure everything is powered up before sending or receiving data  
   I2c.timeOut(50); // Sets a timeout to ensure no locking up of sketch if I2C communication fails
-  llFindSensor(); // Function that uses the LIDARLite-ADDRESSES[] array to find the sensor
 }
 
 void loop(){
@@ -151,40 +149,6 @@ void llConfigureRegisters(char myFunction, int velocityScaling, int numberOfRead
   }
   smConfigureRegistersPrintStatements(myFunction, velocityScaling, numberOfReadings);
 }
-
-
-/* ==========================================================================================================================================
-Find the LIDAR-Lite Sensor from array of possible I2C address
-=============================================================================================================================================*/
-
-void llFindSensor(){
-  uint8_t nackack = 100; // Setup variable to hold ACK/NACK resopnses     
-  String myString; // Setup string variable to print outcome
-  bool sensorFound = false; // Setup flag to indicate whether a sensor has been found or not
-  int i = 0; // Setup a counter
-  while (nackack != 0){ // While NACK keep going (i.e. continue polling until sucess message (ACK) is received )
-    LIDARLite_ADDRESS = byte(LIDARLite_ADDRESSES[i]); // Set address from addresses array
-    nackack = I2c.write(LIDARLite_ADDRESS ,0x41,0x00); // Write 0x00 to read only register 0x41 (will produce an ACK if there is a deice at the device address but won't write anything)
-    if(nackack != 0){
-      i++; // If no ACK from write, increment to next address
-    }else{
-      break; // If ACK recieved stop while loop
-    }
-    delay(2); // Wait 2 ms to prevent overpolling
-  }
-  byte testValue[1]; // Create array to store bytes from read
-  llReadAndWait(0x02,1,testValue); // Read from register 0x02
-  if(testValue[0] == 0x80){ // If device at address is LIDAR-Lite, register 0x02 should always equal 0x80
-    myString += "Device @ 0x";
-    myString += String(byte(LIDARLite_ADDRESS),HEX);  
-    myString += " is LIDAR-Lite.";
-    smPrintFunctionInit(myString);
-  }else{ // If register 0x02 does not equal 0x80, increment to next address and try again
-    i++;
-  }  
-
-}
-
 
 /* ==========================================================================================================================================
 SERIAL INTERACTION AND DISPLAY FUNCTIONS
