@@ -86,18 +86,18 @@ Based on your application the sensor can read more detailed readings over longer
 
 *NOTE: sometimes the text output between the "====" does not reflect the values you have entered (the response from the serial monitor can be slow). If this is the case you can simply type the command into the monitor again, or increase the baud rate in the Arduino program (and upload) and then adjust the baud rate on the serial monitor to reflect the change you made.*
 
-![x](http://assets.pulsedlight3d.com/ll-v3.jpg)
+![x](http://pulsedlight3d.net/assets.pl3d/ll-v3.jpg)
 
 ## Reading Average Velocity
 To read average velocity type "w", followed by 0-3 for the velocity scaling value, and then followed by a value 2-9 representing the number of values to average. 
 
-![x](http://assets.pulsedlight3d.com/ll-w04.jpg)
+![x](http://pulsedlight3d.net/assets.pl3d/ll-w04.jpg)
 
 ## Reading Average Distance
 
 To read average distance type "n", followed by a value 2-9 representing the number of values to average. 
 
-![x](http://assets.pulsedlight3d.com/ll-n8.jpg)
+![x](http://pulsedlight3d.net/assets.pl3d/ll-n8.jpg)
 
 
 
