@@ -62,13 +62,13 @@ As soon as you open the serial monitor, the User Manual will print.
 
 To read distance, simply type "m" into the top input box of the serial monitor and press Enter. A long string of numbers numbers will print one after the other. These are the raw distance read out of the sensor in centimeters. 
 
-![x](http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/ll-m.jpg)
+![x](http://pulsedlight3d.net/assets.pl3d/ll-m.jpg)
 
 ## Stop Reading / Show User Manual
 
 While a process is running, if you press any key a-z, A-Z, 0-9 (any key besides m, n, v, w) the process will stop and the User Manual will print. 
 
-![x](http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/ll-x.jpg)
+![x](http://pulsedlight3d.net/assets.pl3d/ll-x.jpg)
 
 
 ## Reading Velocity
