@@ -86,28 +86,24 @@ Based on your application the sensor can read more detailed readings over longer
 
 *NOTE: sometimes the text output between the "====" does not reflect the values you have entered (the response from the serial monitor can be slow). If this is the case you can simply type the command into the monitor again, or increase the baud rate in the Arduino program (and upload) and then adjust the baud rate on the serial monitor to reflect the change you made.*
 
-![x](http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/ll-v3.jpg)
+![x](http://assets.pulsedlight3d.com/ll-v3.jpg)
 
 ## Reading Average Velocity
 To read average velocity type "w", followed by 0-3 for the velocity scaling value, and then followed by a value 2-9 representing the number of values to average. 
 
-![x](http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/ll-w04.jpg)
+![x](http://assets.pulsedlight3d.com/ll-w04.jpg)
 
 ## Reading Average Distance
 
 To read average distance type "n", followed by a value 2-9 representing the number of values to average. 
 
-![x](http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/ll-n8.jpg)
+![x](http://assets.pulsedlight3d.com/ll-n8.jpg)
 
 
 
 
 ## References 
 
-- *More information about velocity scaling is available in the LIDAR-Lite Operating
-Manual on page 22:*
-http://pulsedlight3d.com/pl3d/wp-content/uploads/2014/10/LIDAR-Lite-Operating-Manual-PRELIM.pdf
-- *More information about LIDAR-Lite
 Learn more about LIDAR-Lite and PulsedLight:*
 http://pulsedlight3d.com
 
